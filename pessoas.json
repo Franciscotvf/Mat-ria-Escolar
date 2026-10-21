@@ -1,0 +1,20 @@
+[
+    {
+        "cpf": "123",
+        "nome": "Gustavo",
+        "idade": 18,
+        "salario": 1604.0
+    },
+    {
+        "cpf": "345",
+        "nome": "euu",
+        "idade": 12,
+        "salario": 23452.2
+    },
+    {
+        "cpf": "346",
+        "nome": "aa",
+        "idade": 21,
+        "salario": 235.2
+    }
+]
