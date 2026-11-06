@@ -23,7 +23,7 @@ create table Pedido(
 	cod_clie numeric(4) references Cliente,
 	cod_ven numeric(4) references Vendedor
 );
-select * from Vendedor;
+select * from Pedido
 
 create table Vendedor(
 	cod_ven numeric(4) primary key,
@@ -165,3 +165,6 @@ SELECT c.nome_clie, pr.descricao FROM Cliente c
 	INNER JOIN Item_pedido itp ON itp.num_pedido = p.num_pedido 
 	INNER JOIN Produto pr ON pr.cod_prod = itp.cod_prod 
 WHERE pr.descricao = 'Chocolate'
+
+-- Aula 06/11/26 - procedures
+
