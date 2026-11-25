@@ -112,9 +112,16 @@ def excluir_pet() -> None:
             if len(registro) == 0:
                 print("Id não encontrado!")
             else:
-                inst_exclusao_porId.execute(f"delete from petshop where id = {id_pet}")
-                conn.commit()
-                print("Pet excluido com sucesso!")
+                print(f"Deseja realmente excluir o pet de ID {id_pet}?")
+                decis = input("S para SIM ou N para NAO: ").strip().lower()
+                if decis == "s":
+                    inst_exclusao_porId.execute(f"delete from petshop where id = {id_pet}")
+                    conn.commit()
+                    print("Pet excluido com sucesso!")
+                elif decis == "n":
+                    print("Voltando para o menu principal, nenhum pet excluido!")
+                else:
+                    print("S ou N somente!")
         except ValueError:
             print("Digite um id numérico!")
         except Exception as e:
@@ -127,12 +134,20 @@ def excluir_todos_pets() -> None:
 
     if dados_df.empty:
         print("-Não há pets cadastrados-")
+        os.system("Pause")
     else:
-        inst_exclusao.execute("delete from petshop")
-        conn.commit()
-        print("Todos os pets foram excluidos com sucesso!")
-    os.system("pause")
-
+        print(dados_df)
+        print("Deseja realmente excluir os pets da tabela?")
+        decis = input("S para SIM ou N para NAO: ").strip().lower()
+        if decis == "s":
+            inst_exclusao.execute("delete from petshop")
+            conn.commit()
+            print("Todos os pets foram excluidos com sucesso!")
+        elif decis == "n":
+            print("Voltando para o menu principal, nenhum pet excluido!")
+        else:
+            print("S ou N somente!")
+        os.system("pause")
 
 def filtrar_pets() -> None:
     print("""
