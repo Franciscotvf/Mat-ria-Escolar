@@ -1,63 +1,190 @@
+'''
+create database petshop;
+
+use petshop;
+
+create table petshop (
+    id int Primary key identity,
+    tipo_pet varchar(50),
+    nome_pet varchar(50),
+    idade int,
+);
+'''
+
 import pyodbc # pip install pyodbc
 import pandas as pd # pip install pandas
 import os
 os.system("cls")
 
 
-def listar_pets() -> None:
+# subalgoritmos
+
+def executar_consulta(sql: str) -> pd.DataFrame:
     lista_dados = []
-    inst_consulta.execute("select * from petshop")
-    data = inst_consulta.fetchall() # Carrega todos os registros no objeto data
+    inst_consulta.execute(sql)
+    data = inst_consulta.fetchall()
 
-    """ data
-    1   cachorro  bob john      4     
-    2        cao     Maria      4     
-    3       gato      bela      6     
-    4      peixe      nemo      1 
-
-    dt =  2          1     Maria      4 
-    ["1   cachorro  bob john      4  ", "2          1     Maria      4 " ]
-    """
-
-
-    # Insere os valores da tabela na lista
     for dt in data:
-        lista_dados.append(dt) 
+        lista_dados.append(dt)
 
-    #Odena a lista
     lista_dados = sorted(lista_dados)
+    dados_df = pd.DataFrame.from_records(lista_dados, columns=['Id', 'Tipo', 'Nome', 'Idade'], index='Id')
+    return dados_df
 
-    #gera um dataFrame com os dados da lista utilizando pandas
-    dados_df = pd.DataFrame.from_records(lista_dados, columns = ['Id', 'Tipo', 'Nome', 'Idade'], index = 'Id')
 
-    #verifica de não há registros de dados no dataFrame
+def cadastrar_pet() -> None:
+    try:
+        tipo = str(input("Insira o tipo de Pet: "))
+        nome = str(input("Insira o nome do PET: "))
+        idade = int(input("Insira a idade do seu Pet: "))
+        cadastro = f"""
+        INSERT INTO petshop (tipo_pet, nome_pet, idade)
+        VALUES('{tipo}', '{nome}', {idade})
+        """
+        inst_cadastro.execute(cadastro)
+        conn.commit()
+    except ValueError:
+        print("Digite uma idade numérica!")
+    except:
+        print("Erro em alguma transação na tabela")
+    else:
+        print("Dados gravados com sucesso!")
+    os.system("pause")
+
+
+def listar_pets() -> None:
+    dados_df = executar_consulta("select * from petshop")
+
     if dados_df.empty:
         print("-Não há pets cadastrados-")
     else:
         print(dados_df)
-    input("pressione algo para continuar. . .")
+    os.system("pause")
 
 
-#Programa principal
+def editar_pet() -> None:
+    dados_df = executar_consulta("select * from petshop")
+
+    if dados_df.empty:
+        print("Nao ha pets cadastrados")
+        os.system("pause")
+    else:
+        print(dados_df)
+        try:
+            id_pet = int(input('Digite o id do pet a ser alterado: '))
+            inst_consulta.execute(f"select * from petshop where id = {id_pet}")
+            registro = inst_consulta.fetchall()
+
+            if len(registro) == 0:
+                print("Id não encontrado!")
+                os.system("pause")
+            else:
+                tipo = str(input('Tipo do pet: '))
+                nome = str(input('Nome do pet: '))
+                idade = int(input('Idade do pet: '))
+
+                inst_alteracao.execute(f"update petshop set tipo_pet='{tipo}', nome_pet='{nome}', idade={idade} where id={id_pet}")
+                conn.commit()
+        except ValueError:
+            print('Digite uma idade valida')
+            os.system("pause")
+        except Exception as e:
+            print('ta errado isso ai', e)
+            os.system("pause")
+        else:
+            if len(registro) != 0:
+                input("alteração efetuada")
+
+
+def excluir_pet() -> None:
+    dados_df = executar_consulta("select * from petshop")
+
+    if dados_df.empty:
+        print("-Não há pets cadastrados-")
+        os.system("pause")
+    else:
+        print(dados_df)
+        try:
+            id_pet = int(input('Digite o id do pet a ser excluido: '))
+            inst_consulta.execute(f"select * from petshop where id = {id_pet}")
+            registro = inst_consulta.fetchall()
+
+            if len(registro) == 0:
+                print("Id não encontrado!")
+            else:
+                inst_exclusao_porId.execute(f"delete from petshop where id = {id_pet}")
+                conn.commit()
+                print("Pet excluido com sucesso!")
+        except ValueError:
+            print("Digite um id numérico!")
+        except Exception as e:
+            print("Erro ao excluir:", e)
+        os.system("pause")
+
+
+def excluir_todos_pets() -> None:
+    dados_df = executar_consulta("select * from petshop")
+
+    if dados_df.empty:
+        print("-Não há pets cadastrados-")
+    else:
+        inst_exclusao.execute("delete from petshop")
+        conn.commit()
+        print("Todos os pets foram excluidos com sucesso!")
+    os.system("pause")
+
+
+def filtrar_pets() -> None:
+    print("""
+    1 - NOME COMPLETO
+    2 - COMEÇA COM
+    3 - TERMINA COM
+    4 - CONTÉM""")
+
+    opc = int(input("Escolha: "))
+    match opc:
+        case 1:
+            nome_filtro = input("Digite o nome completo do animal: ")
+            sql_like = f"select * from petshop where nome_pet like '{nome_filtro}'"
+        case 2:
+            nome_filtro = input("Digite como começa o nome do animal: ")
+            sql_like = f"select * from petshop where nome_pet like '{nome_filtro}%'"
+        case 3:
+            nome_filtro = input("Digite como termina o nome do animal: ")
+            sql_like = f"select * from petshop where nome_pet like '%{nome_filtro}'"
+        case 4:
+            nome_filtro = input("Digite o trecho que contém no nome do animal: ")
+            sql_like = f"select * from petshop where nome_pet like '%{nome_filtro}%'"
+        case _:
+            print("Opção inválida!")
+            os.system("pause")
+            return
+
+    dados_df = executar_consulta(sql_like)
+
+    if dados_df.empty:
+        print("-Nenhum pet encontrado com esse nome-")
+    else:
+        print(dados_df)
+    os.system("pause")
+
+# Codigo
 try:
-    #Configurar as informações de conexãi
     server = 'localhost'
     database = 'petshop'
     username = 'sa'
-    password = '123456HAS'
+    password = '*123456HAS*'
      
-    #  Estabelecer Conexão
     conn = pyodbc.connect('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+password)
-    inst_cadastro = conn.cursor() # objeto que aceita a instrução sql
+    inst_cadastro = conn.cursor() 
     inst_consulta = conn.cursor()
     inst_exclusao = conn.cursor()
     inst_exclusao_porId = conn.cursor()
     inst_alteracao = conn.cursor()
 
-
 except Exception as e:
     print("Erro: ", e)
-    conexao = False # flag -> se é possível ou não executar o sistema
+    conexao = False
 else:
     conexao = True 
     print("Conexão efetuada com sucesso!")
@@ -70,122 +197,24 @@ while conexao:
     print("1 - CADASTRAR PETS")
     print("2 - LISTAR PETS")
     print("3 - EDITAR PET")
-    print("**4 - EXCLUIR PET") # FAzer
-    print("**5 - EXCLUIR TODOS OS PETS") # fazer
-
+    print("4 - EXCLUIR PET")
+    print("5 - EXCLUIR TODOS OS PETS")
+    print("6 - FILTRAR")
 
     escolha = int(input("Escolha: "))
     os.system("cls")
     match escolha:
         case 0:
             conexao = False
-        case 1: 
-            try:
-                #Coletando os dados do usuário
-                tipo = str(input("Insira o tipo de Pet: "))
-                nome = str(input("Insira o nome do PET: "))
-                idade = int(input("Insira a idade do seu Pet: "))
-
-                # Montando a instruçaõ SQL em uma string
-                cadastro = f"""
-                INSERT INTO petshop (tipo_pet, nome_pet, idade)
-                VALUES('{tipo}', '{nome}', {idade})
-                """
-                inst_cadastro.execute(cadastro) #Executa a instrução no banco de dados 
-                conn.commit()
-            except ValueError:
-                print("Digite uma idade numérica!")
-            except:
-                print("Erro em alguma transação na tabela")
-            else:
-                print("Dados gravados com sucesso!")
-        
+        case 1:
+            cadastrar_pet()
         case 2:
-
             listar_pets()
-
         case 3:
-            lista_dados = []
-            inst_consulta.execute("select * from petshop")
-            data = inst_consulta.fetchall()
-            
-            for dt in data:
-                lista_dados.append(dt)
-
-            lista_dados = sorted(lista_dados)
-
-            print(lista_dados)
-            dados_df = pd.DataFrame.from_records(lista_dados, columns={'Id', 'Tipo', 'Nome', 'Idade'}, index='Id')
-
-            if dados_df.empty:
-                print("Nao ha pets cadastrados")
-            else:
-                print(dados_df)
-                try:
-                    id_pet = int(input('Digite o id do pet a ser alterado: ')) 
-                    # verificar se o id existe antes de prosseguir
-                    # select com where (0 - 1)
-                    tipo=input('Tipo do pet:')
-                    nome=input('Nome do pet:')
-                    idade=int(input('Idade do pet:'))
-
-                    inst_alteracao.execute(f"update petshop set tipo_pet='{tipo}', nome_pet='{nome}', idade={idade} where id={id_pet}")
-                    conn.commit()
-                except ValueError:
-                    print('Digite uma idade valida')
-                except Exception as e:
-                    print('ta errado isso ai'+e)
-                else:
-                    input("alteração efetuada")
-        case 4: # excluir
-                lista_dados = []
-                inst_consulta.execute("select * from petshop")
-                data = inst_consulta.fetchall() # Carrega todos os registros no objeto data
-
-
-
-                # Insere os valores da tabela na lista
-                for dt in data:
-                    lista_dados.append(dt) 
-
-                #Odena a lista
-                lista_dados = sorted(lista_dados)
-
-                #gera um dataFrame com os dados da lista utilizando pandas
-                dados_df = pd.DataFrame.from_records(lista_dados, columns = ['Id', 'Tipo', 'Nome', 'Idade'], index = 'Id')
-                if dados_df.empty:
-                    print("-Não há pets cadastrados-")
-                else:
-                    id_remove = int(input('Digite o id que quer excluir: '))
-                    if id_remove not in dados_df.index:
-                        print("Id não encontrado")
-                    else:
-                        delete = "delete from petshop where Id = ?"
-                        inst_exclusao.execute(delete, (id_remove))
-                        conn.commit()
-                        print("Animal removido")
-        
-        case 5: # excluir todos
-            lista_dados = []
-            inst_consulta.execute("select * from petshop")
-            data = inst_consulta.fetchall() # Carrega todos os registros no objeto data
-
-            # Insere os valores da tabela na lista
-            for dt in data:
-                lista_dados.append(dt) 
-
-            #Odena a lista
-            lista_dados = sorted(lista_dados)
-
-            #gera um dataFrame com os dados da lista utilizando pandas
-            dados_df = pd.DataFrame.from_records(lista_dados, columns = ['Id', 'Tipo', 'Nome', 'Idade'], index = 'Id')
-            if dados_df.empty:
-                print("-Não há pets cadastrados-")
-            else:
-                delete_all = "delete from petshop"
-                inst_exclusao.execute(delete_all)
-                conn.commit()
-                print("Todos os animais removidos")   
-                os.system("pause")       
-                
-                        
+            editar_pet()
+        case 4:
+            excluir_pet()
+        case 5:
+            excluir_todos_pets()
+        case 6:
+            filtrar_pets()
